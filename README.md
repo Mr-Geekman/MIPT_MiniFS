@@ -40,6 +40,7 @@ minifs create dir "/documents/new_dir"
 minifs read file "/documents/new_file.txt"
 minifs read dir "/documents/new_dir"
 ```
+При выводе директории сначала печатается маркер того директория это или файл, inode файла, размер файла или количество элементов в директории, имя файла.
 
 4. Удаление файла/каталога, для удаления каталог должен быть пустым
 ```bash
