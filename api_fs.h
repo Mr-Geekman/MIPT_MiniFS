@@ -1,3 +1,6 @@
+#ifndef API_FS
+#define API_FS
+
 #include <errno.h>
 #include <string.h>
 #include <stdlib.h>
@@ -19,17 +22,17 @@
 
 // Реализация операции создания файла/директории
 void 
-create_item(char* operation_type, char* path, struct Inode* inodes, struct SuperBlock* super_block_ptr, 
+create_item(char operation_type, char* path, struct Inode* inodes, struct SuperBlock* super_block_ptr, 
     struct FreeMap* free_map_ptr, FILE* fs)
 {
     bool process_directory = false;
-    if(strcmp(operation_type, "dir") == 0)
+    if(operation_type == 'd')
     {
         process_directory = true;
     }
-    if(strcmp(operation_type, "file") != 0 && strcmp(operation_type, "dir") != 0)
+    if(operation_type != 'f' && operation_type != 'd')
     {
-        fprintf(stderr, "Wrong parameter: %s\n", operation_type);
+        fprintf(stderr, "Wrong parameter operation type parameter.\n");
         return;
     }
     size_t parent_dir;
@@ -94,17 +97,17 @@ create_item(char* operation_type, char* path, struct Inode* inodes, struct Super
 
 // Реализация операции удаления файла/директории
 void 
-delete_item(char* operation_type, char* path, struct Inode* inodes, struct SuperBlock* super_block_ptr, 
+delete_item(char operation_type, char* path, struct Inode* inodes, struct SuperBlock* super_block_ptr, 
     struct FreeMap* free_map_ptr, FILE* fs)
 {
     bool process_directory = false;
-    if(strcmp(operation_type, "dir") == 0)
+    if(operation_type == 'd')
     {
         process_directory = true;
     }
-    if(strcmp(operation_type, "file") != 0 && strcmp(operation_type, "dir") != 0)
+    if(operation_type != 'f' && operation_type != 'd')
     {
-        fprintf(stderr, "Wrong parameter: %s\n", operation_type);
+        fprintf(stderr, "Wrong parameter operation type parameter.\n");
         return;
     }
     size_t parent_dir;
@@ -186,16 +189,16 @@ write_item(char* path, struct Inode* inodes, struct SuperBlock* super_block_ptr,
 
 // Реализация операции чтения
 void 
-read_item(char* operation_type, char* path, struct Inode* inodes, FILE* fs)
+read_item(char operation_type, char* path, struct Inode* inodes, FILE* fs)
 {
     bool process_directory = false;
-    if(strcmp(operation_type, "dir") == 0)
+    if(operation_type == 'd')
     {
         process_directory = true;
     }
-    if(strcmp(operation_type, "file") != 0 && strcmp(operation_type, "dir") != 0)
+    if(operation_type != 'f' && operation_type != 'd')
     {
-        fprintf(stderr, "Wrong parameter: %s\n", operation_type);
+        fprintf(stderr, "Wrong parameter operation type parameter.\n");
         return;
     }
     size_t parent_dir;
@@ -204,7 +207,8 @@ read_item(char* operation_type, char* path, struct Inode* inodes, FILE* fs)
     enum finding_result res;
     res = find_file(path, process_directory, &parent_dir, &file, filename, inodes, fs);
     // Если все прошло корректно
-    if(res == FOUND_BOTH) {
+    if(res == FOUND_BOTH) 
+    {
         // Рассмотрим случаи файла и директории
         if(process_directory)
         {
@@ -239,10 +243,11 @@ init_minifs()
 
     // Создание отображения файла в память
     char* start_addr = mmap(0, CONTROL_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, fileno(fs), 0);
-    if (start_addr == MAP_FAILED) {
+    if (start_addr == MAP_FAILED) 
+    {
         fprintf(stderr, "MMAP failed!\n");
         fclose(fs);
-        exit(0);
+        exit(1);
     }
 
     // Создание адресов для удобной работы с таблицами
@@ -256,7 +261,8 @@ init_minifs()
 
     // Инициализация таблицы файловых дескрипторов
     struct Inode empty_inode = {0, true, false, 0};
-    for(int i = 0; i < NUM_INODES; ++i) {
+    for(int i = 0; i < NUM_INODES; ++i) 
+    {
         inodes[i] = empty_inode;
     }
 
@@ -279,3 +285,5 @@ init_minifs()
     munmap(start_addr, CONTROL_SIZE);
     fclose(fs);
 }
+
+#endif

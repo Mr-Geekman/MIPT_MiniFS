@@ -1,6 +1,7 @@
 #ifndef CONSTANTS
 #define CONSTANTS
 
+#include <limits.h>
 #include "superblock.h"
 
 // Глобальные константы
@@ -13,6 +14,17 @@ enum
     INODE_SIZE = 8, // размер Inode (если его определить не здесь, то будет цикл)
     CONTROL_SIZE = sizeof(struct SuperBlock) + NUM_INODES * INODE_SIZE + (NUM_BLOCKS / CHAR_BIT), // размер контрольной части (без файлов)
     FILENAME_SIZE = 40, // максимальный размер имени файла
+    SERVER_PORT = 5845,
 };
+
+// Типы операций для клиента и сервера
+typedef enum 
+{
+    INIT,
+    CREATE,
+    DELETE,
+    READ,
+    WRITE
+} TypeOperation;
 
 #endif
