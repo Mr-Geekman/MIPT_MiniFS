@@ -4,10 +4,8 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <inttypes.h>
-#include <sys/types.h>
 #include <sys/mman.h>
 #include <unistd.h>
-#include <fcntl.h>
 #include <stdbool.h>
 #include <limits.h>
 #include "constants.h"

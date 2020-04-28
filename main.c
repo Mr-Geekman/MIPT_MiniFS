@@ -2,10 +2,6 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
-#include <stdint.h>
-#include <inttypes.h>
-#include <sys/types.h>
-#include <sys/mman.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <limits.h>
