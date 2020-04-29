@@ -2,3 +2,5 @@ fs.fs
 minifs
 server
 client
+temp/
+logs/

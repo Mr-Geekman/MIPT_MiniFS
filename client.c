@@ -9,9 +9,6 @@
 #include "superblock.h"
 #include "inode.h"
 #include "freemap.h"
-#include "path.h"
-#include "directory.h"
-#include "file.h"
 #include "api_client.h"
 
 
@@ -36,6 +33,7 @@ main(int argc, char* argv[])
     if (connect(conn_fd, (struct sockaddr*)&addr, sizeof(addr)) < 0) 
     {
         fprintf(stderr, "Connection error.\n");
+        close(conn_fd);
         exit(1);
     }
 
@@ -43,6 +41,7 @@ main(int argc, char* argv[])
     if(argc < 2) 
     {
         fprintf(stderr, "You haven't given a comand to execute.\n");
+        close(conn_fd);
         exit(1);
     }
     if(strcmp(argv[1], "init") == 0) 
@@ -55,6 +54,7 @@ main(int argc, char* argv[])
         if(argc < 4) 
         {
             fprintf(stderr, "You haven't given path for reading or type of operation.\n");
+            close(conn_fd);
             exit(1);
         }
         client_read_item(argv[2][0], argv[3], conn_fd);
@@ -65,6 +65,7 @@ main(int argc, char* argv[])
         if(argc < 4) 
         {
             fprintf(stderr, "You haven't given path for creating or type of operation.\n");
+            close(conn_fd);
             exit(1);
         }
         client_create_item(argv[2][0], argv[3], conn_fd);
@@ -75,6 +76,7 @@ main(int argc, char* argv[])
         if(argc < 4) 
         {
             fprintf(stderr, "You haven't given path for deleting or type of operation.\n");
+            close(conn_fd);
             exit(1);
         }
         client_delete_item(argv[2][0], argv[3], conn_fd);
@@ -85,6 +87,7 @@ main(int argc, char* argv[])
         if(argc < 3) 
         {
             fprintf(stderr, "You haven't given path for writing.\n");
+            close(conn_fd);
             exit(0);
         }
         client_write_item(argv[2], conn_fd);

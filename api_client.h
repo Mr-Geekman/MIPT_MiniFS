@@ -24,7 +24,7 @@ client_init_minifs(int conn_fd)
         char* content = malloc(content_length);
         recv(conn_fd, content, content_length, MSG_WAITALL);
 
-        printf("%s", content);
+        printf("%.*s", (int)content_length, content);
         free(content);
     }
 }
@@ -34,7 +34,7 @@ void
 client_create_item(char node_type, char* path, int conn_fd)
 {
     TypeOperation type = CREATE;
-    size_t path_size = strlen(path + 1);
+    size_t path_size = strlen(path) + 1;
 
     // Отправляем серверу всю необходимую информацию для выполнения команды
     send(conn_fd, &type, sizeof(TypeOperation), MSG_CONFIRM);
@@ -50,7 +50,7 @@ client_create_item(char node_type, char* path, int conn_fd)
         char* content = malloc(content_length);
         recv(conn_fd, content, content_length, MSG_WAITALL);
 
-        printf("%s", content);
+        printf("%.*s", (int)content_length, content);
         free(content);
     }
 }
@@ -60,7 +60,7 @@ void
 client_delete_item(char node_type, char* path, int conn_fd)
 {
     TypeOperation type = DELETE;
-    size_t path_size = strlen(path + 1);
+    size_t path_size = strlen(path) + 1;
 
     // Отправляем серверу всю необходимую информацию для выполнения команды
     send(conn_fd, &type, sizeof(TypeOperation), MSG_CONFIRM);
@@ -76,7 +76,7 @@ client_delete_item(char node_type, char* path, int conn_fd)
         char* content = malloc(content_length);
         recv(conn_fd, content, content_length, MSG_WAITALL);
 
-        printf("%s", content);
+        printf("%.*s", (int)content_length, content);
         free(content);
     }
 }
@@ -86,7 +86,7 @@ void
 client_read_item(char node_type, char* path, int conn_fd)
 {
     TypeOperation type = READ;
-    size_t path_size = strlen(path + 1);
+    size_t path_size = strlen(path) + 1;
 
     // Отправляем серверу всю необходимую информацию для выполнения команды
     send(conn_fd, &type, sizeof(TypeOperation), MSG_CONFIRM);
@@ -100,7 +100,7 @@ client_read_item(char node_type, char* path, int conn_fd)
     char* content = malloc(content_length);
     recv(conn_fd, content, content_length, MSG_WAITALL);
 
-    printf("%s", content);
+    fwrite(content, content_length, 1, stdout);
     free(content);
 }
 
@@ -109,7 +109,7 @@ void
 client_write_item(char* path, int conn_fd)
 {
     TypeOperation type = WRITE;
-    size_t path_size = strlen(path + 1);
+    size_t path_size = strlen(path) + 1;
 
 
     // Отправляем серверу всю необходимую информацию для выполнения команды
@@ -123,12 +123,12 @@ client_write_item(char* path, int conn_fd)
     size_t fs_size = CONTROL_SIZE + NUM_BLOCKS * BLOCK_SIZE;
     size_t total_sent = 0;
     size_t buffer_size = fread(buffer, 1, BLOCK_SIZE, stdin);
-    send(conn_fd, &buffer_size, sizeof(size_t), MSG_WAITALL);
+    send(conn_fd, &buffer_size, sizeof(size_t), MSG_CONFIRM);
     while (buffer_size > 0)
     {
         send(conn_fd, buffer, buffer_size, MSG_CONFIRM);
         total_sent += buffer_size;
-        size_t buffer_size = fread(buffer, 1, BLOCK_SIZE, stdin);
+        buffer_size = fread(buffer, 1, BLOCK_SIZE, stdin);
 
         // Если вдруг мы отправляем что-то слишком огромное для нашей файловой системы, то прекратим это
         if (total_sent >= fs_size)
@@ -146,7 +146,7 @@ client_write_item(char* path, int conn_fd)
         char* content = malloc(content_length);
         recv(conn_fd, content, content_length, MSG_WAITALL);
 
-        printf("%s", content);
+        printf("%.*s", (int)content_length, content);
         free(content);
     }
 }

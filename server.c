@@ -4,14 +4,60 @@
 #include <unistd.h>
 #include <arpa/inet.h>
 #include <sys/socket.h>
+#include <signal.h>
 #include "constants.h"
 #include "api_fs.h"
 #include "api_server.h"
 
 
+int conn_fd = -1;
+int listen_fd = -1;
+
+
+void
+shutdown_server()
+{
+    if(conn_fd != -1) {
+        shutdown(conn_fd, SHUT_RDWR);
+        close(conn_fd);
+    }
+    if(listen_fd != -1) {
+        shutdown(listen_fd, SHUT_RDWR);
+        close(listen_fd);
+    }
+    exit(0);
+}
+
+
+void
+prepare_signals()
+{
+    signal(SIGPIPE, SIG_IGN);
+
+    // prepare structures
+    struct sigaction int_action;
+    memset(&int_action, 0, sizeof(struct sigaction));
+    int_action.sa_handler = shutdown_server;
+    int_action.sa_flags = SA_RESTART;
+
+
+    struct sigaction term_action;
+    memset(&term_action, 0, sizeof(struct sigaction));
+    term_action.sa_handler = shutdown_server;
+    term_action.sa_flags = SA_RESTART;
+
+    // set sigaction
+    sigaction(SIGINT, &int_action, NULL);
+    sigaction(SIGTERM, &term_action, NULL);
+}
+
+
 int
 main() 
 {
+    // Обработка сигналов
+    prepare_signals();
+
     // Инициализация файловой системы
     FILE* fs = fopen("fs.fs", "r+");
     if (fs == NULL) 
@@ -39,8 +85,8 @@ main()
     // ДОБАВИТЬ ДЕМОНИЗАЦИЮ ПОСЛЕ ОТЛАДКИ!!!!!!!!
     // daemon(0, 0);
 
-    int listener = socket(AF_INET, SOCK_STREAM, 0);
-    if (listener < 0) 
+    listen_fd = socket(AF_INET, SOCK_STREAM, 0);
+    if (listen_fd < 0) 
     {
         fprintf(stderr, "Error during creating socket.\n");
         exit(1);
@@ -50,29 +96,42 @@ main()
     addr.sin_family = AF_INET;
     addr.sin_port = htons(SERVER_PORT);
     addr.sin_addr.s_addr = htonl(INADDR_ANY);
-    if (bind(listener, (struct sockaddr*)&addr, sizeof(addr)) < 0) 
+    if (bind(listen_fd, (struct sockaddr*)&addr, sizeof(addr)) < 0) 
     {
         fprintf(stderr, "Bind error.\n");
         exit(1);
     }
 
     // Будем слушать лишь одного клиента
-    listen(listener, 1);
+    listen(listen_fd, 1);
 
     // Цикл обработки
     while (true) 
     {
         // Выполим соединение
-        int conn_fd = accept(listener, NULL, NULL);
+
+        // printf("STAGE-0\n");
+
+        conn_fd = accept(listen_fd, NULL, NULL);
+        if(conn_fd < 0)
+        {
+            sleep(1);
+            continue;
+        }
 
         // Заведем файл для вывода программы/ошибок
         // После завершения обработки пользователя, ему будет отправлено содержимое файла
-        freopen("logs/output.log", "wb+", stdout);
-        freopen("logs/output.log", "wb+", stderr);
+        freopen("logs/output.log", "wb", stdout);
+        freopen("logs/output.log", "wb", stderr);
+
+        //printf("STAGE-1\n");
 
         // Прочитаем тип операции и выполним
-        TypeOperation operation = INIT;
+        TypeOperation operation = NONE;
         recv(conn_fd, &operation, sizeof(TypeOperation), MSG_WAITALL);
+
+        //printf("STAGE-2\n");
+
         switch (operation) 
         {
             case INIT:
@@ -90,31 +149,42 @@ main()
             case WRITE:
                 server_write(conn_fd, inodes, super_block_ptr, free_map_ptr, fs);
                 break;
-            default:
+            case NONE:
                 fprintf(stderr, "Comand not found.\n");
-                break;
+                continue;
         }
 
+        //printf("STAGE-3\n");
+
         // Прочитаем содержимое нашего файла logs/output.log и отправим его пользователю
+        fflush(stdout);
+        fflush(stderr);
         FILE* output_file = fopen("logs/output.log", "rb");
         fseek(output_file, 0, SEEK_END);
         size_t output_size = ftell(output_file);
         fseek(output_file, 0, SEEK_SET);
+        send(conn_fd, &output_size, sizeof(size_t), MSG_CONFIRM);
 
-        char* buffer = malloc(output_size + 1);
-        fread(buffer, 1, output_size, output_file);
+        //printf("STAGE-4\n");
+
+        if (output_size > 0)
+        {
+            char* buffer = malloc(output_size);
+            fread(buffer, 1, output_size, output_file);
+            send(conn_fd, buffer, output_size, MSG_CONFIRM);
+            free(buffer);
+        }
         fclose(output_file);
-
-        send(conn_fd, &output_size, sizeof(size_t), MSG_WAITALL);
-        send(conn_fd, buffer, output_size, MSG_WAITALL);
 
         // Закроем соединение и немного подождем (иначе будем зря грузить процессор).
         close(conn_fd);
-        sleep(0.1);
+        conn_fd = -1;
+        sleep(1);
     }
 
     // Очистка
     munmap(start_addr, CONTROL_SIZE);
     fclose(fs);
+    shutdown_server();
     return 0;
 }
