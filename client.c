@@ -44,12 +44,13 @@ main(int argc, char* argv[])
         close(conn_fd);
         exit(1);
     }
+    
     if(strcmp(argv[1], "init") == 0) 
     {
         client_init_minifs(conn_fd);
     }
 
-    if(strcmp(argv[1], "read") == 0) 
+    else if(strcmp(argv[1], "read") == 0) 
     {
         if(argc < 4) 
         {

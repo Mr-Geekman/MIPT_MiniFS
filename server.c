@@ -58,15 +58,23 @@ main()
     // Обработка сигналов
     prepare_signals();
 
+    // Демонизация
+    daemon(0, 0);
+    chdir("/run/minifs/");
+
     // Инициализация файловой системы
     FILE* fs = fopen("fs.fs", "r+");
-    if (fs == NULL) 
+    fseek(fs, 0, SEEK_END);
+    size_t fs_file_size = ftell(fs);
+    fseek(fs, 0, SEEK_SET);
+    size_t fs_size = CONTROL_SIZE + NUM_BLOCKS * BLOCK_SIZE;
+    if (fs == NULL || fs_file_size != fs_size) 
     { 
         // Файла нет, а значит надо самим инициализировать файловую систему
         init_minifs();
         fs = fopen("fs.fs", "r+");
     }
-    size_t fs_size = CONTROL_SIZE + NUM_BLOCKS * BLOCK_SIZE;
+
     ftruncate(fileno(fs), fs_size);
 
     // Создание отображения файла в память
@@ -82,9 +90,6 @@ main()
     struct FreeMap* free_map_ptr = (struct FreeMap*) (start_addr + sizeof(struct SuperBlock) + NUM_INODES * sizeof(struct Inode));
 
     // Инициализация сетевой части
-    // ДОБАВИТЬ ДЕМОНИЗАЦИЮ ПОСЛЕ ОТЛАДКИ!!!!!!!!
-    // daemon(0, 0);
-
     listen_fd = socket(AF_INET, SOCK_STREAM, 0);
     if (listen_fd < 0) 
     {
@@ -110,8 +115,6 @@ main()
     {
         // Выполим соединение
 
-        // printf("STAGE-0\n");
-
         conn_fd = accept(listen_fd, NULL, NULL);
         if(conn_fd < 0)
         {
@@ -121,16 +124,12 @@ main()
 
         // Заведем файл для вывода программы/ошибок
         // После завершения обработки пользователя, ему будет отправлено содержимое файла
-        freopen("logs/output.log", "wb", stdout);
-        freopen("logs/output.log", "wb", stderr);
-
-        //printf("STAGE-1\n");
+        freopen("minifs_output.log", "wb", stdout);
+        freopen("minifs_output.log", "wb", stderr);
 
         // Прочитаем тип операции и выполним
         TypeOperation operation = NONE;
         recv(conn_fd, &operation, sizeof(TypeOperation), MSG_WAITALL);
-
-        //printf("STAGE-2\n");
 
         switch (operation) 
         {
@@ -154,18 +153,15 @@ main()
                 continue;
         }
 
-        //printf("STAGE-3\n");
-
         // Прочитаем содержимое нашего файла logs/output.log и отправим его пользователю
         fflush(stdout);
         fflush(stderr);
-        FILE* output_file = fopen("logs/output.log", "rb");
+        FILE* output_file = fopen("minifs_output.log", "rb");
         fseek(output_file, 0, SEEK_END);
         size_t output_size = ftell(output_file);
         fseek(output_file, 0, SEEK_SET);
         send(conn_fd, &output_size, sizeof(size_t), MSG_CONFIRM);
 
-        //printf("STAGE-4\n");
 
         if (output_size > 0)
         {

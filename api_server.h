@@ -78,7 +78,7 @@ server_write(int conn_fd, struct Inode* inodes, struct SuperBlock* super_block_p
 
     // Надо принять файл, но текущая реализация метода write читает блоки со стандартного ввода и будет ожидать EOF (которого может не быть)
     // Поэтому просто запишем принятый файл в локальный файл, а потом его подадим на стандартный вход
-    FILE* file_to_write = fopen("temp/written.bin", "wb");
+    FILE* file_to_write = fopen("written.bin", "wb");
     size_t buffer_size;
     recv(conn_fd, &buffer_size, sizeof(size_t), MSG_WAITALL);
     while(buffer_size > 0)
@@ -92,7 +92,7 @@ server_write(int conn_fd, struct Inode* inodes, struct SuperBlock* super_block_p
     }
     fclose(file_to_write);
 
-    freopen("temp/written.bin", "rb", stdin);
+    freopen("written.bin", "rb", stdin);
     // Выполняем операцию
     write_item(path, inodes, super_block_ptr, free_map_ptr, fs);
     free(path);
